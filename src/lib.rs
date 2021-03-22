@@ -106,7 +106,7 @@ pub trait Trait: CreateSignedTransaction<Call<Self>> {
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
 pub struct PricePayload<Public, BlockNumber> {
 	block_number: BlockNumber,
-	price: u32,
+	price: u64,
 	public: Public,
 }
 
@@ -121,7 +121,7 @@ decl_storage! {
 		/// A vector of recently submitted prices.
 		///
 		/// This is used to calculate average price, should have bounded size.
-		Prices get(fn prices): Vec<u32>;
+		Prices get(fn prices): Vec<u64>;
 		/// Defines the block when next unsigned transaction will be accepted.
 		///
 		/// To prevent spam of unsigned (and unpayed!) transactions on the network,
@@ -136,7 +136,7 @@ decl_event!(
 	pub enum Event<T> where AccountId = <T as frame_system::Trait>::AccountId {
 		/// Event generated when new price is accepted to contribute to the average.
 		/// \[price, who\]
-		NewPrice(u32, AccountId),
+		NewPrice(u64, AccountId),
 	}
 );
 
@@ -160,7 +160,7 @@ decl_module! {
 		/// This example is not focused on correctness of the oracle itself, but rather its
 		/// purpose is to showcase offchain worker capabilities.
 		#[weight = 0]
-		pub fn submit_price(origin, price: u32) -> DispatchResult {
+		pub fn submit_price(origin, price: u64) -> DispatchResult {
 			// Retrieve sender of the transaction.
 			let who = ensure_signed(origin)?;
 			// Add the price to the on-chain list.
@@ -245,7 +245,7 @@ decl_module! {
 			// of the code to separate `impl` block.
 			// Here we call a helper function to calculate current average price.
 			// This function reads storage entries of the current state.
-			let average: Option<u32> = Self::average_price();
+			let average: Option<u64> = Self::average_price();
 			debug::debug!("Current price: {:?}", average);
 
 			// For this example we are going to send both signed and unsigned transactions
@@ -275,12 +275,12 @@ enum TransactionType {
 }
 
 pub trait FetchPriceFor {
-    fn fetch_price() -> Result<u32, http::Error>;
+    fn fetch_price() -> Result<u64, http::Error>;
 }
 
 impl<T: Trait> FetchPriceFor for Module<T> {
 /// Fetch current price and return the result in cents.
-	fn fetch_price() -> Result<u32, http::Error> {
+	fn fetch_price() -> Result<u64, http::Error> {
 		// We want to keep the offchain worker execution time reasonable, so we set a hard-coded
 		// deadline to 2s to complete the external call.
 		// You can also wait idefinitely for the response, however you may still get a timeout
@@ -548,7 +548,7 @@ impl<T: Trait> Module<T> {
 	}
 
 	/// Fetch current price and return the result in cents.
-	fn fetch_price() -> Result<u32, http::Error> {
+	fn fetch_price() -> Result<u64, http::Error> {
 		// We want to keep the offchain worker execution time reasonable, so we set a hard-coded
 		// deadline to 2s to complete the external call.
 		// You can also wait idefinitely for the response, however you may still get a timeout
@@ -611,7 +611,7 @@ impl<T: Trait> Module<T> {
 	/// Parse the price from the given JSON string using `lite-json`.
 	///
 	/// Returns `None` when parsing failed or `Some(price in cents)` when parsing is successful.
-	fn parse_price(price_str: &str) -> Option<u32> {
+	fn parse_price(price_str: &str) -> Option<u64> {
 		let val = lite_json::parse_json(price_str);
 		let price = val.ok().and_then(|v| match v {
 			JsonValue::Object(obj) => {
@@ -627,11 +627,11 @@ impl<T: Trait> Module<T> {
 		})?;
 
 		let exp = price.fraction_length.checked_sub(2).unwrap_or(0);
-		Some(price.integer as u32 * 100 + (price.fraction / 10_u64.pow(exp)) as u32)
+		Some(price.integer as u64 * 100 + (price.fraction / 10_u64.pow(exp)) as u64)
 	}
 
 	/// Add new price to the list.
-	fn add_price(who: T::AccountId, price: u32) {
+	fn add_price(who: T::AccountId, price: u64) {
 		debug::info!("Adding to the average: {}", price);
 		Prices::mutate(|prices| {
 			const MAX_LEN: usize = 64;
@@ -651,18 +651,18 @@ impl<T: Trait> Module<T> {
 	}
 
 	/// Calculate current average price.
-	fn average_price() -> Option<u32> {
+	fn average_price() -> Option<u64> {
 		let prices = Prices::get();
 		if prices.is_empty() {
 			None
 		} else {
-			Some(prices.iter().fold(0_u32, |a, b| a.saturating_add(*b)) / prices.len() as u32)
+			Some(prices.iter().fold(0_u64, |a, b| a.saturating_add(*b)) / prices.len() as u64)
 		}
 	}
 
 	fn validate_transaction_parameters(
 		block_number: &T::BlockNumber,
-		new_price: &u32,
+		new_price: &u64,
 	) -> TransactionValidity {
 		// Now let's check if the transaction has any chance to succeed.
 		let next_unsigned_at = <NextUnsignedAt<T>>::get();
