@@ -19,7 +19,6 @@ sp-io = { version = "2.0.0", default-features = false }
 sp-runtime = { default-features = false, version = '2.0.0' }
 sp-std = { default-features = false, optional = true, version = '2.0.0' }
 lite-json = { version = "0.1", default-features = false }
-serp-ocw = { version = "0.1", default-features = false }
 [features]
 default = ["std"]
 std = [
