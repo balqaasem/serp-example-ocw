@@ -1,5 +1,5 @@
 [package]
-name = "serp-example-ocw"
+name = "serp-ocw"
 version = "0.2.1"
 authors = ["Muhammad-Jibril BA"]
 edition = "2018"
