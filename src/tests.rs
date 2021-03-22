@@ -92,9 +92,17 @@ impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for T
 	}
 }
 
+pub type CurrencyId = u32;
+
+pub const DNAR: CurrencyId = 1;
+pub const JUSD: CurrencyId = 2;
+pub const SETT: CurrencyId = 3;
+
 parameter_types! {
 	pub const GracePeriod: u64 = 5;
 	pub const UnsignedInterval: u64 = 128;
+	pub const GetJusdCurrencyId: CurrencyId = JUSD;
+	pub const GetTheSettCurrencyId: CurrencyId = JUSD;
 	pub const UnsignedPriority: u64 = 1 << 20;
 }
 
@@ -102,9 +110,12 @@ impl Trait for Test {
 	type Event = ();
 	type AuthorityId = crypto::TestAuthId;
 	type Call = Call<Test>;
+	type CurrencyId = CurrencyId;
 	type GracePeriod = GracePeriod;
 	type UnsignedInterval = UnsignedInterval;
 	type UnsignedPriority = UnsignedPriority;
+	type GetJusdCurrencyId = GetJusdCurrencyId;
+	type GetTheSettCurrencyId = GetTheSettCurrencyId;
 }
 
 type Example = Module<Test>;

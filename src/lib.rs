@@ -22,13 +22,13 @@ use frame_system::{
 use frame_support::{
 	debug, debug::native,
 	dispatch::DispatchResult, decl_module, decl_storage, decl_event,
-	traits::Get,
+	traits::Get, Parameter,
 };
 use sp_core::crypto::KeyTypeId;
 use sp_runtime::{
 	RuntimeDebug,
 	offchain::{http, Duration, storage::StorageValueRef},
-	traits::Zero, 
+	traits::{Zero, MaybeSerializeDeserialize, Member}, 
 	transaction_validity::{
 		InvalidTransaction, ValidTransaction, TransactionValidity, TransactionSource,
 		TransactionPriority,
@@ -75,6 +75,9 @@ pub trait Trait: CreateSignedTransaction<Call<Self>> {
 	/// The identifier type for an offchain worker.
 	type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
 
+	/// The currency identifier.
+	type CurrencyId: Parameter + Member + Copy + MaybeSerializeDeserialize;
+
 	/// The overarching event type.
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 	/// The overarching dispatch call type.
@@ -99,6 +102,12 @@ pub trait Trait: CreateSignedTransaction<Call<Self>> {
 	/// This is exposed so that it can be tuned for particular runtime, when
 	/// multiple pallets send unsigned transactions.
 	type UnsignedPriority: Get<TransactionPriority>;
+
+	/// The US Dollar stable currency id (JUSD).
+	type GetJusdCurrencyId: Get<Self::CurrencyId>;
+
+	/// The Setheum Sett stable currency id (SETT).
+	type GetTheSettCurrencyId: Get<Self::CurrencyId>;
 }
 
 /// Payload used by this example crate to hold price
