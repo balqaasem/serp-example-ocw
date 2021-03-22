@@ -20,7 +20,7 @@ use frame_system::{
 	}
 };
 use frame_support::{
-	debug,
+	debug, debug::native,
 	dispatch::DispatchResult, decl_module, decl_storage, decl_event,
 	traits::Get,
 };
@@ -28,7 +28,7 @@ use sp_core::crypto::KeyTypeId;
 use sp_runtime::{
 	RuntimeDebug,
 	offchain::{http, Duration, storage::StorageValueRef},
-	traits::Zero,
+	traits::Zero, 
 	transaction_validity::{
 		InvalidTransaction, ValidTransaction, TransactionValidity, TransactionSource,
 		TransactionPriority,
@@ -122,6 +122,8 @@ decl_storage! {
 		///
 		/// This is used to calculate average price, should have bounded size.
 		Prices get(fn prices): Vec<u64>;
+		/// This is used to get the price returned by the ocw.
+		Price get(fn get_price): u64 = 1_000;
 		/// Defines the block when next unsigned transaction will be accepted.
 		///
 		/// To prevent spam of unsigned (and unpayed!) transactions on the network,
@@ -137,6 +139,7 @@ decl_event!(
 		/// Event generated when new price is accepted to contribute to the average.
 		/// \[price, who\]
 		NewPrice(u64, AccountId),
+		NewPriceIn(u64),
 	}
 );
 
@@ -263,6 +266,30 @@ decl_module! {
 				debug::error!("Error: {}", e);
 			}
 		}
+		
+		#[weight = 0]
+        pub fn set_price(origin, new_price: u64) -> DispatchResult {
+            let _who = ensure_signed(origin)?;
+
+            Price::put(new_price);
+
+            Self::deposit_event(RawEvent::NewPriceIn(new_price));
+
+            Ok(())
+        }
+
+        #[weight = 0]
+        pub fn get_offchain_price(origin) -> DispatchResult {
+            let _who = ensure_signed(origin)?;
+            let price = <Self as FetchPriceFor>::fetch_price().unwrap();
+
+            native::info!("USD offchain price: {}", price);
+            Price::put(price);
+
+            Self::deposit_event(RawEvent::NewPriceIn(price));
+
+            Ok(())
+        }
 	}
 }
 
@@ -272,6 +299,17 @@ enum TransactionType {
 	UnsignedForAll,
 	Raw,
 	None,
+}
+
+pub trait FetchPrice<U64> {
+	/// Fetch the current price.
+	fn fetch_price() -> u64;
+}
+
+impl<T: Trait> FetchPrice<u64> for Module<T> {
+    fn fetch_price() -> u64 {
+        Self::get_price()
+    }
 }
 
 pub trait FetchPriceFor {
