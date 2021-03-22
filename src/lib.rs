@@ -185,7 +185,7 @@ decl_module! {
 		/// This example is not focused on correctness of the oracle itself, but rather its
 		/// purpose is to showcase offchain worker capabilities.
 		#[weight = 0]
-		pub fn submit_price_unsigned(origin, _block_number: T::BlockNumber, price: u32)
+		pub fn submit_price_unsigned(origin, _block_number: T::BlockNumber, price: u64)
 			-> DispatchResult
 		{
 			// This ensures that the function can only be called via unsigned transaction.
