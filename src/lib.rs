@@ -1,5 +1,6 @@
 //! In this example we are going to build a very simplistic, naive and definitely NOT
-//! production-ready oracle for SETT/USD and JUSD/USD prices. 
+//! production-ready oracle for DNAR/USD, SETT/USD and JUSD/USD prices. 
+//! The BTC here represents DNAR since DNAR is not yet listed in the market.
 //! The USDT here represents SETT since SETT is not yet listed in the market.
 //! The DAI here represents JUSD since JUSD is not yet listed in the market.
 //! Offchain Worker (OCW) will be triggered after every block, fetch the current price
@@ -328,6 +329,7 @@ impl<T: Trait> FetchPrice<u64> for Module<T> {
 }
 
 pub trait FetchPriceFor {
+	fn fetch_dinar_price() -> Result<u64, http::Error>;
     fn fetch_sett_price() -> Result<u64, http::Error>;
 	fn fetch_jusd_price() -> Result<u64, http::Error>;
 	fn parse_price(price_str: &str) -> Option<u64>;
@@ -335,6 +337,46 @@ pub trait FetchPriceFor {
 
 /// Fetch current price and return the result in cents.
 impl<T: Trait> FetchPriceFor for Module<T> {
+
+	/// Fetch current price of SETT and return the result in cents.
+	fn fetch_dinar_price() -> Result<u64, http::Error> {
+		let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
+		let request = http::Request::get(
+			"https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=USD"
+		);
+		let pending = request
+			.deadline(deadline)
+			.send()
+			.map_err(|_| http::Error::IoError)?;
+
+		let response = pending.try_wait(deadline)
+			.map_err(|_| http::Error::DeadlineReached)??;
+		// Let's check the status code before we proceed to reading the response.
+		if response.code != 200 {
+			debug::warn!("Unexpected status code: {}", response.code);
+			return Err(http::Error::Unknown);
+		}
+
+		let body = response.body().collect::<Vec<u8>>();
+
+		// Create a str slice from the body.
+		let body_str = sp_std::str::from_utf8(&body).map_err(|_| {
+			debug::warn!("No UTF8 body");
+			http::Error::Unknown
+		})?;
+
+		let price = match Self::parse_price(body_str) {
+			Some(price) => Ok(price),
+			None => {
+				debug::warn!("Unable to extract price from the response: {:?}", body_str);
+				Err(http::Error::Unknown)
+			}
+		}?;
+
+		debug::warn!("Got price: {} cents", price);
+
+		Ok(price)
+	}
 
 	/// Fetch current price of SETT and return the result in cents.
 	fn fetch_sett_price() -> Result<u64, http::Error> {
