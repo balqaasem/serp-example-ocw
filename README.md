@@ -6,7 +6,10 @@ concepts, APIs and structures common to most offchain workers.
 ## Overview
 
 In this example we are going to build a very simplistic, naive and definitely NOT
-production-ready oracle for JUSD/USD price.
+production-ready oracle for DNAR/USD, SETT/USD and JUSD/USD prices.
+
+The BTC here represents DNAR since DNAR is not yet listed in the market.
+The USDT here represents SETT since SETT is not yet listed in the market.
 DAI here represents JUSD, since JUSD is not yet listed in the market.
 Offchain Worker (OCW) will be triggered after every block, fetch the current price
 and prepare either signed or unsigned transaction to feed the result back on chain.
